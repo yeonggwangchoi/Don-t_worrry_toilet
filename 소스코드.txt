@@ -1,0 +1,134 @@
+#include <mega128.h>
+#include <stdio.h>
+#include <delay.h>
+#include <alcd.h>
+
+unsigned char sw;
+unsigned char i=30, j, k=0;
+int f1=3, f2=0;
+unsigned char fnd1[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xd8,0x80,0x98}, fnd2[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xd8,0x80,0x98};
+
+// External Interrupt 0 service routine
+interrupt [EXT_INT0] void ext_int0_isr(void)
+{
+    k++;
+    if(k==1)
+    {
+    EICRA=0x03;
+    PORTE=0xFF;
+    lcd_clear();
+    lcd_putsf("The earth is    sick.");
+    delay_ms(3000);
+    lcd_clear();
+    lcd_putsf("The tree hurts.");
+    delay_ms(3000);
+    lcd_clear();
+    lcd_putsf("Are you         beautiful?");
+    delay_ms(3000);
+    lcd_clear();
+    lcd_putsf("Your place is   beautiful, too!!");
+    delay_ms(3000);
+    lcd_clear();
+    PORTA=fnd1[f1];
+    PORTB=fnd2[f2];
+    while(k<2)
+    {
+        if(EIFR==0x01)
+        {
+            lcd_clear();
+            lcd_putsf("Have a nice day!");
+            delay_ms(5000);
+            lcd_clear();
+            PORTA=0xFF;
+            PORTB=0xFF;
+            break;
+        }
+           
+        sw=~PINF&0x0F;
+        
+        if(sw==0x02)
+        {   
+            lcd_clear();
+            j=0;
+            i=30;
+            f1=3;
+            f2=0;
+            PORTA=fnd1[f1];
+            PORTB=fnd2[f2];
+            lcd_putsf("The toilet paperis refilled!");
+            delay_ms(5000);
+            lcd_clear();
+        }
+        else if(sw==0x01)//휴지 나오는 버튼, 남은 휴지 갯수 표시, 휴지 절약 문구
+        {  
+            i--;
+            j++;
+            f2--;
+            if(f1<1&&f2<1)
+            {
+                f1=0;
+                f2=0;
+            }
+            else if(f2<0)
+            {
+                f2=9;
+                f1--;
+            }
+            
+            PORTA=fnd1[f1];
+            PORTB=fnd2[f2];
+            delay_ms(100);
+            
+            if(j>4)
+            {   
+                lcd_clear();
+                lcd_putsf("Save your toiletpaper!!!");
+                delay_ms(3000);
+                lcd_clear();
+                j=0;
+            }
+            delay_ms(1000);
+            
+            if(i<1)
+            {
+                lcd_clear();
+                lcd_putsf("Please fill in  toilet paper!!!");
+                delay_ms(3000);
+                lcd_clear();
+            }    
+        }
+        
+    }
+    } 
+}
+
+void main(void)
+{
+PORTA=0xFF;
+DDRA=0xFF;
+PORTB=0xFF;
+DDRB=0xFF;
+PORTF=0xFF;
+DDRF=0x00;
+PORTE=0x00;
+DDRE=0xFF;
+
+EICRA=(0<<ISC31) | (0<<ISC30) | (0<<ISC21) | (0<<ISC20) | (0<<ISC11) | (0<<ISC10) | (1<<ISC01) | (0<<ISC00);
+EICRB=(0<<ISC71) | (0<<ISC70) | (0<<ISC61) | (0<<ISC60) | (0<<ISC51) | (0<<ISC50) | (0<<ISC41) | (0<<ISC40);
+EIMSK=(0<<INT7) | (0<<INT6) | (0<<INT5) | (0<<INT4) | (0<<INT3) | (0<<INT2) | (0<<INT1) | (1<<INT0);
+EIFR=(0<<INTF7) | (0<<INTF6) | (0<<INTF5) | (0<<INTF4) | (0<<INTF3) | (0<<INTF2) | (0<<INTF1) | (1<<INTF0);
+
+lcd_init(16);
+
+#asm("sei")
+
+while (1)
+      {
+            k=0;
+            EICRA=0x02;
+            PORTE=0xFF;
+            delay_ms(500);
+            PORTE=0x00;
+            delay_ms(500);
+      }
+}
